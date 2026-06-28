@@ -11,13 +11,13 @@ export default function SmoothScrolling({ children }: { children: React.ReactNod
         lerp: 0.03, 
         
         // DESKTOP: Multiplies 1 small mouse wheel tick
-        wheelMultiplier: 2.6, 
+        wheelMultiplier: 1.5, 
         
         // MOBILE: Forces mobile to use the Lenis smoothing engine
         syncTouch: true, 
         
         // MOBILE BOOST: Multiplies a small thumb swipe into a massive, slow-motion glide
-        touchMultiplier: 4, 
+        touchMultiplier: 1.5, 
       }}
     >
       {children}
