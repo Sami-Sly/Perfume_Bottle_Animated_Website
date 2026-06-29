@@ -1158,6 +1158,10 @@
 // }
 
 
+
+
+
+
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -1440,7 +1444,7 @@ export default function ScrollCanvas() {
     const dw = img.naturalWidth  * scale;
     const dh = img.naturalHeight * scale;
     const dx = (W - dw) / 2;
-    const dy = (H - dh) * 0.15;
+    const dy = (H - dh) * 0.15;;
 
     ctx.drawImage(img, dx, dy, dw, dh);
     lastDrawnRef.current = i;
