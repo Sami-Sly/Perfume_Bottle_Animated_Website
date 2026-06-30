@@ -1313,7 +1313,7 @@ export default function ScrollCanvas() {
 
       setCanvasSize();
 
-      const frameCount = 300;
+      const frameCount = 240;
       const images: HTMLImageElement[] = [];
       let imagesToLoad = frameCount;
 
