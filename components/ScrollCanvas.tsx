@@ -1191,81 +1191,14 @@
 
 
 
+
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import Loader from "./Loader";
 
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger, useGSAP);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CONFIG
-// ─────────────────────────────────────────────────────────────────────────────
-const FIRST_FRAME = 1;
-const LAST_FRAME = 240;
-const TOTAL_FRAMES = LAST_FRAME - FIRST_FRAME + 1;
-
-function frameSrc(i: number) {
-  return `/frames/ezgif-frame-${String(FIRST_FRAME + i).padStart(3, "0")}.jpg`;
-}
-
-interface Beat {
-  align: "center" | "left" | "right";
-  eyebrow?: string;
-  headline: string;
-  body?: string;
-  bullets?: string[];
-  sectionId?: string;
-}
-
-const BEATS: Beat[] = [
-  {
-    align: "center",
-    headline: "Aurum\nNocturne",
-    body: "A fragrance born from darkness and gold.",
-    sectionId: "story",
-  },
-  {
-    align: "left",
-    eyebrow: "Composition",
-    headline: "Crafted from\nrare essences.",
-    body: "Each bottle contains a precise alchemy of Oud from Assam, aged Sandalwood, and cold-pressed Bergamot. Sourced across four continents, blended in Grasse.",
-    sectionId: "ingredients",
-  },
-  {
-    align: "right",
-    eyebrow: "Sillage",
-    headline: "A presence\nthat lingers.",
-    bullets: [
-      "Top: Bergamot, Cardamom, Saffron.",
-      "Heart: Rose Taif, Jasmine Sambac, Iris.",
-      "Base: Oud, Sandalwood, Ambergris.",
-    ],
-    sectionId: "scent",
-  },
-  {
-    align: "left",
-    eyebrow: "Object",
-    headline: "A vessel as\nrare as its soul.",
-    body: "Hand-cut crystal. 24-carat gold collar. Each flacon is individually numbered, signed by our master perfumer.",
-    sectionId: "details-beat",
-  },
-  {
-    align: "center",
-    headline: "Some things\ncannot be found.",
-    body: "Aurum Nocturne. 50ml Extrait de Parfum.",
-    sectionId: "acquire-beat",
-  },
-];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SCOPED CSS
-// ─────────────────────────────────────────────────────────────────────────────
 const SCOPED_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 
@@ -1277,161 +1210,66 @@ const SCOPED_CSS = `
     --text-dim: rgba(255,248,235,0.48);
   }
 
-  .sc-track { position: relative; }
+  .sc-hero { position: relative; width: 100%; height: 100vh; height: 100svh; overflow: hidden; background: var(--bg); }
 
-  .sc-sticky {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    height: 100svh; /* mobile-safe viewport height (Safari/Chrome address bar) */
-    width: 100%;
-    overflow: hidden;
-    background: var(--bg);
+  .sc-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+
+  .sc-vignette {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(11,9,6,0.75) 100%);
   }
-
-  .sc-canvas {
-    display: block;
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
   .sc-fade-bottom {
     position: absolute; bottom: 0; left: 0; right: 0; height: 38%;
     background: linear-gradient(to top, #0B0906 10%, rgba(11,9,6,.5) 55%, transparent);
     pointer-events: none; z-index: 1;
   }
-  .sc-vignette {
-    position: absolute; inset: 0; pointer-events: none; z-index: 1;
-    background: radial-gradient(ellipse at center, transparent 40%, rgba(11,9,6,0.75) 100%);
+
+  .sc-text-wrap {
+    position: absolute; top: 50%; left: 50%; width: 100%; max-width: 700px;
+    transform: translate(-50%, -50%); text-align: center; z-index: 10;
+    pointer-events: none; padding: 0 24px;
   }
-
-  .sc-beat {
-    position: absolute; inset: 0; z-index: 2;
-    display: flex; align-items: center;
-    pointer-events: none; opacity: 0; visibility: hidden;
-    padding: 0 6vw;
-  }
-  .sc-beat-inner { width: 100%; max-width: 400px; }
-
-  .sc-beat[data-align="left"] { justify-content: flex-start; }
-  .sc-beat[data-align="right"] { justify-content: flex-end; }
-  .sc-beat[data-align="center"] { justify-content: center; padding: 0 24px; }
-
-  .sc-beat[data-align="left"] .sc-beat-inner { text-align: left; }
-  .sc-beat[data-align="right"] .sc-beat-inner { text-align: right; }
-  .sc-beat[data-align="center"] .sc-beat-inner { text-align: center; max-width: 700px; }
-
-  .sc-pill-wrapper { margin-bottom: 14px; display: flex; }
-  .sc-rule-wrapper { margin-bottom: 16px; display: flex; }
-
-  .sc-beat[data-align="left"] .sc-pill-wrapper, .sc-beat[data-align="left"] .sc-rule-wrapper { justify-content: flex-start; }
-  .sc-beat[data-align="right"] .sc-pill-wrapper, .sc-beat[data-align="right"] .sc-rule-wrapper { justify-content: flex-end; }
-  .sc-beat[data-align="center"] .sc-pill-wrapper { justify-content: center; }
+  .sc-text-block { position: absolute; top: 0; left: 0; width: 100%; }
 
   .sc-hed {
     font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300;
-    line-height: 1.0; letter-spacing: -.01em; color: var(--text); white-space: pre-line;
+    line-height: 1.05; letter-spacing: -.01em; color: var(--text); white-space: pre-line;
+    font-size: clamp(28px, 5.5vw, 64px); margin: 0 0 16px;
   }
   .sc-gold-text {
     background: linear-gradient(135deg, #C9A84C 0%, #F0D88A 45%, #C9A84C 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
-  .sc-pill {
-    display: inline-flex; align-items: center; gap: 8px; font-family: 'DM Sans', sans-serif; font-size: 10px;
-    letter-spacing: .18em; text-transform: uppercase; color: var(--gold); background: rgba(201,168,76,.07);
-    border: 1px solid rgba(201,168,76,.18); border-radius: 99px; padding: 5px 14px 5px 10px;
-  }
-  .sc-pill-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
-  .sc-rule { display: block; width: 30px; height: 1px; background: linear-gradient(90deg, var(--gold), transparent); }
-  .sc-rule.right { background: linear-gradient(90deg, transparent, var(--gold)); }
-
-  .sc-final-cta {
-    position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%);
-    display: flex; flex-direction: column; align-items: center; gap: 14px;
-    z-index: 10; opacity: 0; visibility: hidden; white-space: nowrap; pointer-events: auto;
-  }
-  .sc-btn-gold {
-    font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 12px;
-    letter-spacing: .1em; text-transform: uppercase; color: #0B0906; text-decoration: none;
-    padding: 14px 42px; border-radius: 99px;
-    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-lt) 50%, var(--gold) 100%);
-    display: inline-block; transition: opacity .2s, transform .2s, box-shadow .3s;
-  }
-  .sc-btn-gold:hover { opacity:.88; transform:scale(.97); box-shadow:0 10px 44px rgba(201,168,76,.28); }
-  .sc-btn-ghost {
-    font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
-    color: var(--text-dim); text-decoration: none; border-bottom: 1px solid rgba(255,248,235,.12); padding-bottom: 2px;
-  }
-  .sc-btn-ghost:hover { color: var(--text); border-color: rgba(255,248,235,.35); }
-
-  .sc-scroll-hint { display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:40px; }
-  .sc-scroll-hint span { font-family:'DM Sans',sans-serif; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:rgba(255,248,235,.28); }
-  @keyframes sc-bounce { 0%,100%{transform:translateY(0);opacity:.4} 50%{transform:translateY(5px);opacity:.85} }
-  .sc-scroll-svg { animation: sc-bounce 2.2s ease-in-out infinite; }
-
-  /* ── Large desktop / laptop ── */
-  @media (max-width: 1280px) {
-    .sc-beat { padding: 0 5.5vw; }
-    .sc-beat-inner { max-width: 380px; }
+  .sc-body {
+    font-family: 'DM Sans', sans-serif; font-weight: 300; font-size: clamp(13px, 1.5vw, 17px);
+    line-height: 1.7; color: rgba(255,248,235,.6); letter-spacing: .01em; margin: 0;
   }
 
-  /* ── Tablet (iPad portrait/landscape, Android tablets) ── */
   @media (max-width: 1024px) {
-    .sc-beat { padding: 0 5vw; }
-    .sc-beat-inner { max-width: 360px; }
+    .sc-text-wrap { max-width: 520px; }
   }
-  @media (max-width: 900px) and (min-width: 769px) {
-    .sc-beat-inner { max-width: 320px; }
-    .sc-hed { font-size: clamp(24px, 3.6vw, 46px) !important; }
-  }
-
-  /* ── Mobile ── */
   @media (max-width: 768px) {
-    .sc-beat { padding: 0 24px; }
-    .sc-beat-inner { max-width: 100%; }
-    .sc-beat[data-align="left"] .sc-beat-inner,
-    .sc-beat[data-align="right"] .sc-beat-inner {
-      max-width: 300px;
-    }
-    .sc-beat[data-align="center"] .sc-beat-inner { max-width: 100%; }
-    .sc-final-cta { bottom: 6%; transform: translateX(-50%) scale(0.95); }
+    .sc-text-wrap { max-width: 90%; padding: 0 20px; }
+    .sc-hed { font-size: clamp(24px, 7vw, 40px); }
   }
-
-  /* ── Small mobile ── */
   @media (max-width: 380px) {
-    .sc-beat { padding: 0 18px; }
-    .sc-beat[data-align="left"] .sc-beat-inner,
-    .sc-beat[data-align="right"] .sc-beat-inner {
-      max-width: 260px;
-    }
-  }
-
-  /* ── Short / landscape phones ── */
-  @media (max-height: 480px) and (orientation: landscape) {
-    .sc-scroll-hint { margin-top: 18px; }
-    .sc-final-cta { bottom: 4%; gap: 8px; }
+    .sc-text-wrap { max-width: 100%; }
   }
 `;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENT
-// ─────────────────────────────────────────────────────────────────────────────
 export default function ScrollCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const text1Ref = useRef<HTMLDivElement>(null);
+  const text2Ref = useRef<HTMLDivElement>(null);
+  const text3Ref = useRef<HTMLDivElement>(null);
 
-  const imagesRef = useRef<(HTMLImageElement | null)[]>(new Array(TOTAL_FRAMES).fill(null));
-  const loadedRef = useRef<boolean[]>(new Array(TOTAL_FRAMES).fill(false));
   const videoFramesRef = useRef({ frame: 0 });
   const dprRef = useRef(1);
-  const contentShownRef = useRef(false);
 
-  const [loadPct, setLoadPct] = useState(0);
-  const [showContent, setShowContent] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+  if (typeof window !== "undefined") {
+    gsap.registerPlugin(ScrollTrigger, useGSAP);
+  }
 
   // inject scoped css once
   useEffect(() => {
@@ -1444,141 +1282,95 @@ export default function ScrollCanvas() {
     return () => { document.getElementById(id)?.remove(); };
   }, []);
 
-  // full-screen canvas sizing — no navbar offset, capped DPR for crisp full-bleed
-  const setCanvasSize = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    dprRef.current = dpr;
-    // Use visualViewport when available for more accurate sizing on mobile
-    // (handles browser chrome / address bar collapse on iOS & Android correctly).
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    canvas.width = Math.round(W * dpr);
-    canvas.height = Math.round(H * dpr);
-    canvas.style.width = W + "px";
-    canvas.style.height = H + "px";
-    const ctx = canvas.getContext("2d", { alpha: false });
-    if (ctx) {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
-    }
-  }, []);
-
-  // COVER-fit draw — fills the entire canvas/viewport edge-to-edge on every
-  // device (mobile, tablet, desktop), cropping overflow instead of leaving
-  // letterbox bars. This is what makes the canvas feel truly "full screen."
-  const render = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext("2d");
-    if (!context) return;
-
-    let i = Math.max(0, Math.min(TOTAL_FRAMES - 1, Math.round(videoFramesRef.current.frame)));
-    while (i >= 0 && !loadedRef.current[i]) i--;
-    if (i < 0) return;
-
-    const img = imagesRef.current[i];
-    if (!img) return;
-
-    const dpr = dprRef.current;
-    const W = canvas.width / dpr;
-    const H = canvas.height / dpr;
-
-    context.fillStyle = "#0B0906";
-    context.fillRect(0, 0, W, H);
-
-    const imgAspect = img.naturalWidth / img.naturalHeight;
-    const canvasAspect = W / H;
-
-    let dw, dh, dx, dy;
-    if (imgAspect > canvasAspect) {
-      // image is relatively wider than viewport → match height, crop sides
-      dh = H;
-      dw = dh * imgAspect;
-      dx = (W - dw) / 2;
-      dy = 0;
-    } else {
-      // image is relatively taller than viewport → match width, crop top/bottom
-      dw = W;
-      dh = dw / imgAspect;
-      dx = 0;
-      dy = (H - dh) / 2;
-    }
-
-    context.drawImage(img, dx, dy, dw, dh);
-  }, []);
-
-  // preloader — sequential streams, shows content after first 10 frames
-  useEffect(() => {
-    let loaded = 0;
-
-    const onFrameDone = (i: number) => {
-      loaded++;
-      setLoadPct(Math.min(100, Math.round((loaded / TOTAL_FRAMES) * 100)));
-      if (i === 0) render();
-      if (loaded >= 10 && !contentShownRef.current) {
-        contentShownRef.current = true;
-        setShowContent(true);
-        setTimeout(() => setIsVisible(true), 50);
-      }
-    };
-
-    const initialBatch = 10;
-    for (let i = 0; i < Math.min(initialBatch, TOTAL_FRAMES); i++) {
-      const img = new Image();
-      img.decoding = "async";
-      img.onload = () => {
-        img.decode().catch(() => {}).finally(() => {
-          loadedRef.current[i] = true;
-          imagesRef.current[i] = img;
-          onFrameDone(i);
-        });
-      };
-      img.onerror = () => onFrameDone(i);
-      img.src = frameSrc(i);
-    }
-
-    let nextFrameToLoad = initialBatch;
-    const loadNextSequence = () => {
-      if (nextFrameToLoad >= TOTAL_FRAMES) return;
-      const i = nextFrameToLoad;
-      nextFrameToLoad++;
-      const img = new Image();
-      img.decoding = "async";
-      const handleComplete = () => {
-        onFrameDone(i);
-        loadNextSequence();
-      };
-      img.onload = () => {
-        img.decode().catch(() => {}).finally(() => {
-          loadedRef.current[i] = true;
-          imagesRef.current[i] = img;
-          handleComplete();
-        });
-      };
-      img.onerror = handleComplete;
-      img.src = frameSrc(i);
-    };
-
-    const ric = (window as any).requestIdleCallback || ((cb: Function) => setTimeout(cb, 100));
-    ric(() => {
-      loadNextSequence();
-      loadNextSequence();
-      loadNextSequence();
-    });
-  }, [render]);
-
-  // scroll-driven engine: useGSAP timeline tweening videoFramesRef.frame
   useGSAP(
     () => {
-      if (!showContent) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const context = canvas.getContext("2d", { alpha: false });
+      if (!context) return;
+
+      gsap.set([text1Ref.current, text2Ref.current, text3Ref.current], {
+        xPercent: 0,
+        yPercent: 0,
+        opacity: 0,
+      });
+
+      // ── canvas sizing: capped DPR + setTransform reset so repeated
+      // resizes never compound the scale (the bug in the original code) ──
+      const setCanvasSize = () => {
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        dprRef.current = pixelRatio;
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        canvas.width = Math.round(W * pixelRatio);
+        canvas.height = Math.round(H * pixelRatio);
+        canvas.style.width = W + "px";
+        canvas.style.height = H + "px";
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.scale(pixelRatio, pixelRatio);
+      };
 
       setCanvasSize();
-      render();
 
-      // Debounced resize handler — also fires on orientationchange so
-      // rotating a phone/tablet immediately re-fits the canvas & ScrollTrigger.
+      const frameCount = 300;
+      const images: HTMLImageElement[] = [];
+      let imagesToLoad = frameCount;
+
+      // ── render: COVER-fit so the canvas always fills the full screen
+      // edge-to-edge on mobile, tablet, and desktop (no letterbox bars) ──
+      const render = () => {
+        const dpr = dprRef.current;
+        const W = canvas.width / dpr;
+        const H = canvas.height / dpr;
+
+        context.fillStyle = "#0B0906";
+        context.fillRect(0, 0, W, H);
+
+        const img = images[videoFramesRef.current.frame];
+        if (img?.complete && img.naturalWidth > 0) {
+          const imgAspect = img.naturalWidth / img.naturalHeight;
+          const canvasAspect = W / H;
+
+          let dw, dh, dx, dy;
+          if (imgAspect > canvasAspect) {
+            dh = H;
+            dw = dh * imgAspect;
+            dx = (W - dw) / 2;
+            dy = 0;
+          } else {
+            dw = W;
+            dh = dw / imgAspect;
+            dx = 0;
+            dy = (H - dh) / 2;
+          }
+
+          context.drawImage(img, dx, dy, dw, dh);
+        }
+      };
+
+      for (let i = 0; i < frameCount; i++) {
+        const img = new Image();
+        img.src = `/frames/ezgif-frame-${(i + 1).toString().padStart(3, "0")}.jpg`;
+        img.onload = () => {
+          imagesToLoad--;
+          if (imagesToLoad === 0) {
+            render();
+            ScrollTrigger.refresh();
+          }
+        };
+        img.onerror = () => {
+          imagesToLoad--;
+          if (imagesToLoad === 0) {
+            render();
+            ScrollTrigger.refresh();
+          }
+        };
+        images.push(img);
+      }
+
+      // ── debounced resize + orientationchange so rotating a phone/tablet
+      // re-fits the canvas correctly, and rapid resize events don't thrash ──
       let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
       const handleResize = () => {
         if (resizeTimeout) clearTimeout(resizeTimeout);
@@ -1591,67 +1383,48 @@ export default function ScrollCanvas() {
       window.addEventListener("resize", handleResize);
       window.addEventListener("orientationchange", handleResize);
 
-      const cards = gsap.utils.toArray<HTMLElement>(".sc-beat");
-      gsap.set(cards, { autoAlpha: 0 });
-      gsap.set(".sc-final-cta", { autoAlpha: 0, y: 16 });
-
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: trackRef.current,
+          trigger: ".sc-hero",
           start: "top top",
-          end: "bottom bottom",
+          end: () => `+=${window.innerHeight * 5}`,
           invalidateOnRefresh: true,
-          pin: false, // sc-sticky already handles the pin via CSS position: sticky
+          pin: true,
+          pinSpacing: true,
           scrub: 1,
         },
       });
 
-      // frame scrub — tween the ref object, snap to whole frames, redraw on update
       tl.to(
         videoFramesRef.current,
         {
-          frame: TOTAL_FRAMES - 1,
+          frame: frameCount - 1,
           snap: "frame",
+          onUpdate: render,
           duration: 1,
           ease: "none",
-          onUpdate: render,
         },
         0
       );
 
-      // beats fade in/out across their zone of the timeline
-      const CARD_ZONE = 0.78;
-      const STEP = CARD_ZONE / BEATS.length;
-      const ENTRY_DELAY = STEP * 0.06;
-      const FADE_IN = STEP * 0.36;
-      const FADE_OUT = STEP * 0.3;
-      const mob = window.innerWidth < 768;
+      tl.to(text1Ref.current, { opacity: 1, duration: 0.2 }, 0);
+      tl.to(text1Ref.current, { opacity: 0, y: -50, duration: 0.2 }, 0.2);
 
-      cards.forEach((card, i) => {
-        const zoneStart = i * STEP;
-        const zoneEnd = (i + 1) * STEP;
-        const fadeInStart = zoneStart + ENTRY_DELAY;
-        const fadeOutStart = zoneEnd - FADE_OUT;
+      tl.fromTo(
+        text2Ref.current,
+        { y: 50 },
+        { opacity: 1, y: 0, duration: 0.2 },
+        0.3
+      );
+      tl.to(text2Ref.current, { opacity: 0, y: -50, duration: 0.2 }, 0.6);
 
-        const a = BEATS[i].align;
-        const ox = mob ? 0 : a === "left" ? -22 : a === "right" ? 22 : 0;
-        const oy = a === "center" ? 14 : 0;
-
-        tl.fromTo(
-          card,
-          { autoAlpha: 0, x: ox, y: oy },
-          { autoAlpha: 1, x: 0, y: 0, ease: "power2.out", duration: FADE_IN, immediateRender: true },
-          fadeInStart
-        );
-        tl.to(
-          card,
-          { autoAlpha: 0, x: -ox, y: -oy, ease: "power2.inOut", duration: FADE_OUT },
-          fadeOutStart
-        );
-      });
-
-      tl.fromTo(".sc-final-cta", { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, ease: "power2.out", duration: 0.06 }, 0.78);
-      tl.to(".sc-final-cta", { autoAlpha: 0, y: -10, ease: "power2.in", duration: 0.04 }, 0.9);
+      tl.fromTo(
+        text3Ref.current,
+        { y: 50 },
+        { opacity: 1, y: 0, duration: 0.2 },
+        0.7
+      );
+      tl.to(text3Ref.current, { opacity: 0, y: -50, duration: 0.2 }, 0.9);
 
       return () => {
         window.removeEventListener("resize", handleResize);
@@ -1659,121 +1432,39 @@ export default function ScrollCanvas() {
         if (resizeTimeout) clearTimeout(resizeTimeout);
       };
     },
-    { scope: containerRef, dependencies: [showContent] }
+    { scope: containerRef }
   );
 
   return (
-    <div ref={containerRef}>
-      {!showContent && <Loader progress={loadPct} />}
+    <div ref={containerRef} style={{ background: "#0B0906" }}>
+      <section className="sc-hero">
+        <canvas ref={canvasRef} className="sc-canvas"></canvas>
 
-      <div
-        id="story"
-        ref={trackRef}
-        className="sc-track"
-        style={{
-          height: "550vh",
-          opacity: isVisible ? 1 : 0,
-          transition: "opacity 0.8s ease",
-        }}
-      >
-        <div className="sc-sticky">
-          <canvas ref={canvasRef} className="sc-canvas" />
+        <div className="sc-vignette" />
+        <div className="sc-fade-bottom" />
 
-          <div className="sc-vignette" />
-          <div className="sc-fade-bottom" />
+        <div className="sc-text-wrap">
+          <div ref={text1Ref} className="sc-text-block">
+            <h1 className="sc-hed">
+              <span className="sc-gold-text">Aurum{"\n"}Nocturne</span>
+            </h1>
+            <p className="sc-body">A fragrance born from darkness and gold.</p>
+          </div>
 
-          {BEATS.map((beat, i) => {
-            const isR = beat.align === "right";
-            const isC = beat.align === "center";
+          <div ref={text2Ref} className="sc-text-block">
+            <h1 className="sc-hed">Crafted from{"\n"}rare essences.</h1>
+            <p className="sc-body">
+              Oud from Assam, aged Sandalwood, and cold-pressed Bergamot —
+              blended in Grasse.
+            </p>
+          </div>
 
-            return (
-              <div key={i} id={beat.sectionId} className="sc-beat" data-align={beat.align}>
-                <div className="sc-beat-inner">
-                  {beat.eyebrow && (
-                    <div className="sc-pill-wrapper">
-                      <span className="sc-pill">
-                        <span className="sc-pill-dot" />
-                        {beat.eyebrow}
-                      </span>
-                    </div>
-                  )}
-
-                  <h2
-                    className="sc-hed"
-                    style={{
-                      fontSize: isC && i === 0 ? "clamp(44px, 8.5vw, 100px)" : "clamp(26px, 4vw, 54px)",
-                      marginBottom: 16,
-                    }}
-                  >
-                    {i === 0 ? <span className="sc-gold-text">{beat.headline}</span> : beat.headline}
-                  </h2>
-
-                  {!isC && (
-                    <div className="sc-rule-wrapper">
-                      <span className={`sc-rule ${isR ? "right" : ""}`} />
-                    </div>
-                  )}
-
-                  {beat.body && (
-                    <p
-                      style={{
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontWeight: 300,
-                        fontSize: i === 0 ? "clamp(15px, 1.8vw, 19px)" : "clamp(13px, 1.3vw, 15px)",
-                        lineHeight: 1.72,
-                        color: i === 0 ? "rgba(255,248,235,.68)" : "rgba(255,248,235,.52)",
-                        letterSpacing: ".01em",
-                      }}
-                    >
-                      {beat.body}
-                    </p>
-                  )}
-
-                  {beat.bullets && (
-                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10, margin: 0, padding: 0 }}>
-                      {beat.bullets.map((b, bi) => (
-                        <li
-                          key={bi}
-                          style={{
-                            fontFamily: "'DM Sans', sans-serif",
-                            fontWeight: 300,
-                            fontSize: "clamp(12px, 1.2vw, 14px)",
-                            color: "rgba(255,248,235,.52)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            justifyContent: isR ? "flex-end" : "flex-start",
-                            flexDirection: isR ? "row-reverse" : "row",
-                            letterSpacing: ".02em",
-                          }}
-                        >
-                          <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--gold)", flexShrink: 0 }} />
-                          {b}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {i === 0 && (
-                    <div className="sc-scroll-hint">
-                      <span>Scroll to discover</span>
-                      <svg width="16" height="22" viewBox="0 0 16 22" fill="none" className="sc-scroll-svg">
-                        <rect x="1" y="1" width="14" height="20" rx="7" stroke="rgba(201,168,76,.45)" strokeWidth="1.2" />
-                        <circle cx="8" cy="7" r="2" fill="rgba(201,168,76,.65)" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          <div className="sc-final-cta">
-            <a href="#acquire" className="sc-btn-gold">Acquire the Flacon</a>
-            <a href="#details" className="sc-btn-ghost">Discover craftsmanship</a>
+          <div ref={text3Ref} className="sc-text-block">
+            <h1 className="sc-hed">Some things{"\n"}cannot be found.</h1>
+            <p className="sc-body">Aurum Nocturne. 50ml Extrait de Parfum.</p>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
