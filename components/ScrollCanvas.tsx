@@ -1192,12 +1192,299 @@
 
 
 
+// "use client";
+
+// import { useRef, useEffect } from "react";
+// import { gsap } from "gsap";
+// import { ScrollTrigger } from "gsap/ScrollTrigger";
+// import { useGSAP } from "@gsap/react";
+
+// const SCOPED_CSS = `
+//   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+
+//   :root {
+//     --gold: #C9A84C;
+//     --gold-lt: #E8C97A;
+//     --bg: #0B0906;
+//     --text: rgba(255,248,235,0.92);
+//     --text-dim: rgba(255,248,235,0.48);
+//   }
+
+//   .sc-hero { position: relative; width: 100%; height: 100vh; height: 100svh; overflow: hidden; background: var(--bg); }
+
+//   .sc-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+
+//   .sc-vignette {
+//     position: absolute; inset: 0; pointer-events: none; z-index: 1;
+//     background: radial-gradient(ellipse at center, transparent 40%, rgba(11,9,6,0.75) 100%);
+//   }
+//   .sc-fade-bottom {
+//     position: absolute; bottom: 0; left: 0; right: 0; height: 38%;
+//     background: linear-gradient(to top, #0B0906 10%, rgba(11,9,6,.5) 55%, transparent);
+//     pointer-events: none; z-index: 1;
+//   }
+
+//   .sc-text-wrap {
+//     position: absolute; top: 50%; left: 50%; width: 100%; max-width: 700px;
+//     transform: translate(-50%, -50%); text-align: center; z-index: 10;
+//     pointer-events: none; padding: 0 24px;
+//   }
+//   .sc-text-block { position: absolute; top: 0; left: 0; width: 100%; }
+
+//   .sc-hed {
+//     font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300;
+//     line-height: 1.05; letter-spacing: -.01em; color: var(--text); white-space: pre-line;
+//     font-size: clamp(28px, 5.5vw, 64px); margin: 0 0 16px;
+//   }
+//   .sc-gold-text {
+//     background: linear-gradient(135deg, #C9A84C 0%, #F0D88A 45%, #C9A84C 100%);
+//     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+//   }
+//   .sc-body {
+//     font-family: 'DM Sans', sans-serif; font-weight: 300; font-size: clamp(13px, 1.5vw, 17px);
+//     line-height: 1.7; color: rgba(255,248,235,.6); letter-spacing: .01em; margin: 0;
+//   }
+
+//   @media (max-width: 1024px) {
+//     .sc-text-wrap { max-width: 520px; }
+//   }
+//   @media (max-width: 768px) {
+//     .sc-text-wrap { max-width: 90%; padding: 0 20px; }
+//     .sc-hed { font-size: clamp(24px, 7vw, 40px); }
+//   }
+//   @media (max-width: 380px) {
+//     .sc-text-wrap { max-width: 100%; }
+//   }
+// `;
+
+// export default function ScrollCanvas() {
+//   const containerRef = useRef<HTMLDivElement>(null);
+//   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+//   const text1Ref = useRef<HTMLDivElement>(null);
+//   const text2Ref = useRef<HTMLDivElement>(null);
+//   const text3Ref = useRef<HTMLDivElement>(null);
+
+//   const videoFramesRef = useRef({ frame: 0 });
+//   const dprRef = useRef(1);
+
+//   if (typeof window !== "undefined") {
+//     gsap.registerPlugin(ScrollTrigger, useGSAP);
+//   }
+
+//   // inject scoped css once
+//   useEffect(() => {
+//     const id = "sc-css";
+//     if (document.getElementById(id)) return;
+//     const s = document.createElement("style");
+//     s.id = id;
+//     s.textContent = SCOPED_CSS;
+//     document.head.appendChild(s);
+//     return () => { document.getElementById(id)?.remove(); };
+//   }, []);
+
+//   useGSAP(
+//     () => {
+//       const canvas = canvasRef.current;
+//       if (!canvas) return;
+
+//       const context = canvas.getContext("2d", { alpha: false });
+//       if (!context) return;
+
+//       gsap.set([text1Ref.current, text2Ref.current, text3Ref.current], {
+//         xPercent: 0,
+//         yPercent: 0,
+//         opacity: 0,
+//       });
+
+//       // ── canvas sizing: capped DPR + setTransform reset so repeated
+//       // resizes never compound the scale (the bug in the original code) ──
+//       const setCanvasSize = () => {
+//         const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+//         dprRef.current = pixelRatio;
+//         const W = window.innerWidth;
+//         const H = window.innerHeight;
+//         canvas.width = Math.round(W * pixelRatio);
+//         canvas.height = Math.round(H * pixelRatio);
+//         canvas.style.width = W + "px";
+//         canvas.style.height = H + "px";
+//         context.setTransform(1, 0, 0, 1, 0, 0);
+//         context.scale(pixelRatio, pixelRatio);
+//       };
+
+//       setCanvasSize();
+
+//       const frameCount = 240;
+//       const images: HTMLImageElement[] = [];
+//       let imagesToLoad = frameCount;
+
+//       // ── render: COVER-fit so the canvas always fills the full screen
+//       // edge-to-edge on mobile, tablet, and desktop (no letterbox bars) ──
+//       const render = () => {
+//         const dpr = dprRef.current;
+//         const W = canvas.width / dpr;
+//         const H = canvas.height / dpr;
+
+//         context.fillStyle = "#0B0906";
+//         context.fillRect(0, 0, W, H);
+
+//         const img = images[videoFramesRef.current.frame];
+//         if (img?.complete && img.naturalWidth > 0) {
+//           const imgAspect = img.naturalWidth / img.naturalHeight;
+//           const canvasAspect = W / H;
+
+//           let dw, dh, dx, dy;
+//           if (imgAspect > canvasAspect) {
+//             dh = H;
+//             dw = dh * imgAspect;
+//             dx = (W - dw) / 2;
+//             dy = 0;
+//           } else {
+//             dw = W;
+//             dh = dw / imgAspect;
+//             dx = 0;
+//             dy = (H - dh) / 2;
+//           }
+
+//           context.drawImage(img, dx, dy, dw, dh);
+//         }
+//       };
+
+//       for (let i = 0; i < frameCount; i++) {
+//         const img = new Image();
+//         img.src = `/frames/ezgif-frame-${(i + 1).toString().padStart(3, "0")}.jpg`;
+//         img.onload = () => {
+//           imagesToLoad--;
+//           if (imagesToLoad === 0) {
+//             render();
+//             ScrollTrigger.refresh();
+//           }
+//         };
+//         img.onerror = () => {
+//           imagesToLoad--;
+//           if (imagesToLoad === 0) {
+//             render();
+//             ScrollTrigger.refresh();
+//           }
+//         };
+//         images.push(img);
+//       }
+
+//       // ── debounced resize + orientationchange so rotating a phone/tablet
+//       // re-fits the canvas correctly, and rapid resize events don't thrash ──
+//       let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+//       const handleResize = () => {
+//         if (resizeTimeout) clearTimeout(resizeTimeout);
+//         resizeTimeout = setTimeout(() => {
+//           setCanvasSize();
+//           render();
+//           ScrollTrigger.refresh();
+//         }, 100);
+//       };
+//       window.addEventListener("resize", handleResize);
+//       window.addEventListener("orientationchange", handleResize);
+
+//       const tl = gsap.timeline({
+//         scrollTrigger: {
+//           trigger: ".sc-hero",
+//           start: "top top",
+//           end: () => `+=${window.innerHeight * 5}`,
+//           invalidateOnRefresh: true,
+//           pin: true,
+//           pinSpacing: true,
+//           scrub: 1,
+//         },
+//       });
+
+//       tl.to(
+//         videoFramesRef.current,
+//         {
+//           frame: frameCount - 1,
+//           snap: "frame",
+//           onUpdate: render,
+//           duration: 1,
+//           ease: "none",
+//         },
+//         0
+//       );
+
+//       tl.to(text1Ref.current, { opacity: 1, duration: 0.2 }, 0);
+//       tl.to(text1Ref.current, { opacity: 0, y: -50, duration: 0.2 }, 0.2);
+
+//       tl.fromTo(
+//         text2Ref.current,
+//         { y: 50 },
+//         { opacity: 1, y: 0, duration: 0.2 },
+//         0.3
+//       );
+//       tl.to(text2Ref.current, { opacity: 0, y: -50, duration: 0.2 }, 0.6);
+
+//       tl.fromTo(
+//         text3Ref.current,
+//         { y: 50 },
+//         { opacity: 1, y: 0, duration: 0.2 },
+//         0.7
+//       );
+//       tl.to(text3Ref.current, { opacity: 0, y: -50, duration: 0.2 }, 0.9);
+
+//       return () => {
+//         window.removeEventListener("resize", handleResize);
+//         window.removeEventListener("orientationchange", handleResize);
+//         if (resizeTimeout) clearTimeout(resizeTimeout);
+//       };
+//     },
+//     { scope: containerRef }
+//   );
+
+//   return (
+//     <div ref={containerRef} style={{ background: "#0B0906" }}>
+//       <section className="sc-hero">
+//         <canvas ref={canvasRef} className="sc-canvas"></canvas>
+
+//         <div className="sc-vignette" />
+//         <div className="sc-fade-bottom" />
+
+//         <div className="sc-text-wrap">
+//           <div ref={text1Ref} className="sc-text-block">
+//             <h1 className="sc-hed">
+//               <span className="sc-gold-text">Aurum{"\n"}Nocturne</span>
+//             </h1>
+//             <p className="sc-body">A fragrance born from darkness and gold.</p>
+//           </div>
+
+//           <div ref={text2Ref} className="sc-text-block">
+//             <h1 className="sc-hed">Crafted from{"\n"}rare essences.</h1>
+//             <p className="sc-body">
+//               Oud from Assam, aged Sandalwood, and cold-pressed Bergamot —
+//               blended in Grasse.
+//             </p>
+//           </div>
+
+//           <div ref={text3Ref} className="sc-text-block">
+//             <h1 className="sc-hed">Some things{"\n"}cannot be found.</h1>
+//             <p className="sc-body">Aurum Nocturne. 50ml Extrait de Parfum.</p>
+//           </div>
+//         </div>
+//       </section>
+//     </div>
+//   );
+// }
+
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import Loader from "./Loader";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger, useGSAP);
+}
+
+const FRAME_COUNT = 240;
+function frameSrc(i: number) {
+  return `/frames/ezgif-frame-${(i + 1).toString().padStart(3, "0")}.jpg`;
+}
 
 const SCOPED_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
@@ -1211,7 +1498,6 @@ const SCOPED_CSS = `
   }
 
   .sc-hero { position: relative; width: 100%; height: 100vh; height: 100svh; overflow: hidden; background: var(--bg); }
-
   .sc-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
 
   .sc-vignette {
@@ -1245,16 +1531,12 @@ const SCOPED_CSS = `
     line-height: 1.7; color: rgba(255,248,235,.6); letter-spacing: .01em; margin: 0;
   }
 
-  @media (max-width: 1024px) {
-    .sc-text-wrap { max-width: 520px; }
-  }
+  @media (max-width: 1024px) { .sc-text-wrap { max-width: 520px; } }
   @media (max-width: 768px) {
     .sc-text-wrap { max-width: 90%; padding: 0 20px; }
     .sc-hed { font-size: clamp(24px, 7vw, 40px); }
   }
-  @media (max-width: 380px) {
-    .sc-text-wrap { max-width: 100%; }
-  }
+  @media (max-width: 380px) { .sc-text-wrap { max-width: 100%; } }
 `;
 
 export default function ScrollCanvas() {
@@ -1264,12 +1546,14 @@ export default function ScrollCanvas() {
   const text2Ref = useRef<HTMLDivElement>(null);
   const text3Ref = useRef<HTMLDivElement>(null);
 
+  const imagesRef = useRef<HTMLImageElement[]>([]);
+  const loadedRef = useRef<boolean[]>(new Array(FRAME_COUNT).fill(false));
   const videoFramesRef = useRef({ frame: 0 });
   const dprRef = useRef(1);
 
-  if (typeof window !== "undefined") {
-    gsap.registerPlugin(ScrollTrigger, useGSAP);
-  }
+  const [loadPct, setLoadPct] = useState(0);
+  const [isReady, setIsReady] = useState(false); // every frame decoded
+  const [showHero, setShowHero] = useState(false); // hero faded in
 
   // inject scoped css once
   useEffect(() => {
@@ -1282,106 +1566,131 @@ export default function ScrollCanvas() {
     return () => { document.getElementById(id)?.remove(); };
   }, []);
 
+  const setCanvasSize = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    dprRef.current = pixelRatio;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    canvas.width = Math.round(W * pixelRatio);
+    canvas.height = Math.round(H * pixelRatio);
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    const context = canvas.getContext("2d", { alpha: false });
+    if (context) {
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.scale(pixelRatio, pixelRatio);
+    }
+  }, []);
+
+  // ── render: falls back to the nearest ALREADY-LOADED frame instead of
+  // drawing nothing, so even an edge case (a frame that 404s) never blinks ──
+  const render = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) return;
+
+    const dpr = dprRef.current;
+    const W = canvas.width / dpr;
+    const H = canvas.height / dpr;
+
+    context.fillStyle = "#0B0906";
+    context.fillRect(0, 0, W, H);
+
+    let idx = Math.round(videoFramesRef.current.frame);
+    while (idx >= 0 && !loadedRef.current[idx]) idx--;
+    if (idx < 0) return;
+
+    const img = imagesRef.current[idx];
+    if (!img) return;
+
+    const imgAspect = img.naturalWidth / img.naturalHeight;
+    const canvasAspect = W / H;
+    let dw, dh, dx, dy;
+    if (imgAspect > canvasAspect) {
+      dh = H; dw = dh * imgAspect; dx = (W - dw) / 2; dy = 0;
+    } else {
+      dw = W; dh = dw / imgAspect; dx = 0; dy = (H - dh) / 2;
+    }
+    context.drawImage(img, dx, dy, dw, dh);
+  }, []);
+
+  // ── preload EVERY frame before the page becomes scrollable. This is the
+  // actual fix for the blink: the scrub animation never starts until there
+  // is a fully-decoded image ready for every possible frame index. ──
+  useEffect(() => {
+    setCanvasSize();
+    document.body.style.overflow = "hidden"; // lock scroll while loading
+
+    let loaded = 0;
+    const onFrameDone = (i: number, ok: boolean) => {
+      loaded++;
+      if (ok) loadedRef.current[i] = true;
+      setLoadPct(Math.round((loaded / FRAME_COUNT) * 100));
+      if (i === 0 && ok) render();
+      if (loaded === FRAME_COUNT) {
+        render();
+        setIsReady(true);
+      }
+    };
+
+    for (let i = 0; i < FRAME_COUNT; i++) {
+      const img = new Image();
+      img.decoding = "async";
+      img.onload = () => {
+        img
+          .decode()
+          .catch(() => {})
+          .finally(() => {
+            imagesRef.current[i] = img;
+            onFrameDone(i, true);
+          });
+      };
+      img.onerror = () => onFrameDone(i, false);
+      img.src = frameSrc(i);
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [render, setCanvasSize]);
+
+  // unlock scroll + fade the hero in once loading finishes
+  useEffect(() => {
+    if (!isReady) return;
+    document.body.style.overflow = "";
+    const t = setTimeout(() => setShowHero(true), 50);
+    return () => clearTimeout(t);
+  }, [isReady]);
+
+  // resize / orientation handling, independent of load state
+  useEffect(() => {
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleResize = () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        setCanvasSize();
+        render();
+        ScrollTrigger.refresh();
+      }, 100);
+    };
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+    };
+  }, [setCanvasSize, render]);
+
+  // build the pinned scrub timeline only once every frame is ready
   useGSAP(
     () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!isReady) return;
 
-      const context = canvas.getContext("2d", { alpha: false });
-      if (!context) return;
-
-      gsap.set([text1Ref.current, text2Ref.current, text3Ref.current], {
-        xPercent: 0,
-        yPercent: 0,
-        opacity: 0,
-      });
-
-      // ── canvas sizing: capped DPR + setTransform reset so repeated
-      // resizes never compound the scale (the bug in the original code) ──
-      const setCanvasSize = () => {
-        const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-        dprRef.current = pixelRatio;
-        const W = window.innerWidth;
-        const H = window.innerHeight;
-        canvas.width = Math.round(W * pixelRatio);
-        canvas.height = Math.round(H * pixelRatio);
-        canvas.style.width = W + "px";
-        canvas.style.height = H + "px";
-        context.setTransform(1, 0, 0, 1, 0, 0);
-        context.scale(pixelRatio, pixelRatio);
-      };
-
-      setCanvasSize();
-
-      const frameCount = 240;
-      const images: HTMLImageElement[] = [];
-      let imagesToLoad = frameCount;
-
-      // ── render: COVER-fit so the canvas always fills the full screen
-      // edge-to-edge on mobile, tablet, and desktop (no letterbox bars) ──
-      const render = () => {
-        const dpr = dprRef.current;
-        const W = canvas.width / dpr;
-        const H = canvas.height / dpr;
-
-        context.fillStyle = "#0B0906";
-        context.fillRect(0, 0, W, H);
-
-        const img = images[videoFramesRef.current.frame];
-        if (img?.complete && img.naturalWidth > 0) {
-          const imgAspect = img.naturalWidth / img.naturalHeight;
-          const canvasAspect = W / H;
-
-          let dw, dh, dx, dy;
-          if (imgAspect > canvasAspect) {
-            dh = H;
-            dw = dh * imgAspect;
-            dx = (W - dw) / 2;
-            dy = 0;
-          } else {
-            dw = W;
-            dh = dw / imgAspect;
-            dx = 0;
-            dy = (H - dh) / 2;
-          }
-
-          context.drawImage(img, dx, dy, dw, dh);
-        }
-      };
-
-      for (let i = 0; i < frameCount; i++) {
-        const img = new Image();
-        img.src = `/frames/ezgif-frame-${(i + 1).toString().padStart(3, "0")}.jpg`;
-        img.onload = () => {
-          imagesToLoad--;
-          if (imagesToLoad === 0) {
-            render();
-            ScrollTrigger.refresh();
-          }
-        };
-        img.onerror = () => {
-          imagesToLoad--;
-          if (imagesToLoad === 0) {
-            render();
-            ScrollTrigger.refresh();
-          }
-        };
-        images.push(img);
-      }
-
-      // ── debounced resize + orientationchange so rotating a phone/tablet
-      // re-fits the canvas correctly, and rapid resize events don't thrash ──
-      let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
-      const handleResize = () => {
-        if (resizeTimeout) clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-          setCanvasSize();
-          render();
-          ScrollTrigger.refresh();
-        }, 100);
-      };
-      window.addEventListener("resize", handleResize);
-      window.addEventListener("orientationchange", handleResize);
+      gsap.set([text1Ref.current, text2Ref.current, text3Ref.current], { opacity: 0 });
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -1397,49 +1706,33 @@ export default function ScrollCanvas() {
 
       tl.to(
         videoFramesRef.current,
-        {
-          frame: frameCount - 1,
-          snap: "frame",
-          onUpdate: render,
-          duration: 1,
-          ease: "none",
-        },
+        { frame: FRAME_COUNT - 1, snap: "frame", onUpdate: render, duration: 1, ease: "none" },
         0
       );
 
       tl.to(text1Ref.current, { opacity: 1, duration: 0.2 }, 0);
       tl.to(text1Ref.current, { opacity: 0, y: -50, duration: 0.2 }, 0.2);
 
-      tl.fromTo(
-        text2Ref.current,
-        { y: 50 },
-        { opacity: 1, y: 0, duration: 0.2 },
-        0.3
-      );
+      tl.fromTo(text2Ref.current, { y: 50 }, { opacity: 1, y: 0, duration: 0.2 }, 0.3);
       tl.to(text2Ref.current, { opacity: 0, y: -50, duration: 0.2 }, 0.6);
 
-      tl.fromTo(
-        text3Ref.current,
-        { y: 50 },
-        { opacity: 1, y: 0, duration: 0.2 },
-        0.7
-      );
+      tl.fromTo(text3Ref.current, { y: 50 }, { opacity: 1, y: 0, duration: 0.2 }, 0.7);
       tl.to(text3Ref.current, { opacity: 0, y: -50, duration: 0.2 }, 0.9);
 
-      return () => {
-        window.removeEventListener("resize", handleResize);
-        window.removeEventListener("orientationchange", handleResize);
-        if (resizeTimeout) clearTimeout(resizeTimeout);
-      };
+      ScrollTrigger.refresh();
     },
-    { scope: containerRef }
+    { scope: containerRef, dependencies: [isReady] }
   );
 
   return (
     <div ref={containerRef} style={{ background: "#0B0906" }}>
-      <section className="sc-hero">
-        <canvas ref={canvasRef} className="sc-canvas"></canvas>
+      {!showHero && <Loader progress={loadPct} />}
 
+      <section
+        className="sc-hero"
+        style={{ opacity: showHero ? 1 : 0, transition: "opacity 0.6s ease" }}
+      >
+        <canvas ref={canvasRef} className="sc-canvas"></canvas>
         <div className="sc-vignette" />
         <div className="sc-fade-bottom" />
 
@@ -1454,8 +1747,7 @@ export default function ScrollCanvas() {
           <div ref={text2Ref} className="sc-text-block">
             <h1 className="sc-hed">Crafted from{"\n"}rare essences.</h1>
             <p className="sc-body">
-              Oud from Assam, aged Sandalwood, and cold-pressed Bergamot —
-              blended in Grasse.
+              Oud from Assam, aged Sandalwood, and cold-pressed Bergamot — blended in Grasse.
             </p>
           </div>
 
