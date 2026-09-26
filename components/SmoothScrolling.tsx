@@ -14,7 +14,7 @@ export default function SmoothScrolling({ children }: { children: React.ReactNod
         wheelMultiplier: 1.5, 
         
         // MOBILE: Forces mobile to use the Lenis smoothing engine
-        syncTouch: true, 
+        syncTouch: false, 
         
         // MOBILE BOOST: Multiplies a small thumb swipe into a massive, slow-motion glide
         touchMultiplier: 1.2, 
