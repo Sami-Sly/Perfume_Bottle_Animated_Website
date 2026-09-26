@@ -1469,6 +1469,8 @@
 //   );
 // }
 
+
+
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
@@ -1696,11 +1698,12 @@ export default function ScrollCanvas() {
         scrollTrigger: {
           trigger: ".sc-hero",
           start: "top top",
-          end: () => `+=${window.innerHeight * 5}`,
+        end: () => `+=${window.innerHeight * 4}`,
           invalidateOnRefresh: true,
           pin: true,
           pinSpacing: true,
-          scrub: 1,
+          scrub: 0.5,
+          anticipatePin: 1,
         },
       });
 

@@ -1,4 +1,13 @@
 @import "tailwindcss";
+@import "lenis/dist/lenis.css";
+
+html.lenis {
+  height: auto;
+}
+
+html.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
 
 :root {
   --background: #ffffff;
